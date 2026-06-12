@@ -1,0 +1,17 @@
+{
+  "_comment": "Sample deployment manifest. After running `forge script script/DeployRepulyser.s.sol`, copy the printed addresses into a real deployments.json and commit it. Replace the zero addresses with your actual deployments.",
+  "atlantic-testnet": {
+    "registry": "0x0000000000000000000000000000000000000000",
+    "analyzer": "0x0000000000000000000000000000000000000000",
+    "attestorHelper": "0x0000000000000000000000000000000000000000",
+    "deployedAt": "1970-01-01T00:00:00Z",
+    "deployer": "0x0000000000000000000000000000000000000000"
+  },
+  "mainnet": {
+    "registry": "0x0000000000000000000000000000000000000000",
+    "analyzer": "0x0000000000000000000000000000000000000000",
+    "attestorHelper": "0x0000000000000000000000000000000000000000",
+    "deployedAt": "1970-01-01T00:00:00Z",
+    "deployer": "0x0000000000000000000000000000000000000000"
+  }
+}

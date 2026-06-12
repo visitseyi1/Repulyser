@@ -1,0 +1,53 @@
+{
+  "_comment": "Repulyser signal type enum. Index values must match IReputationRegistry.SignalType. The 'description' field explains what the raw 0..10000 score represents; the 'attestorHint' is what an off-chain attestor should measure.",
+  "0": {
+    "name": "AccountAge",
+    "description": "Wallet age in days since first transaction. 0 = brand new, 10000 = 4+ years active.",
+    "attestorHint": "Compute age = now - first_tx_timestamp. Normalize: score = min(age_days / 1460, 1) * 10000. Cap at 10000."
+  },
+  "1": {
+    "name": "TxVolume",
+    "description": "Lifetime native token (PHRS / PROS) volume in/out. 0 = zero volume, 10000 = whale tier (>= 1,000,000 tokens).",
+    "attestorHint": "Sum value of all native transfers to/from the address (in+out). score = min(volume / 1_000_000e18, 1) * 10000."
+  },
+  "2": {
+    "name": "TxFrequency",
+    "description": "Transaction count in the last 30 days. 0 = dormant, 10000 = 500+ txs in 30 days.",
+    "attestorHint": "count txs in last 30d. score = min(count / 500, 1) * 10000."
+  },
+  "3": {
+    "name": "DefiInteractions",
+    "description": "Distinct DeFi protocol contracts interacted with. 0 = none, 10000 = 25+ protocols.",
+    "attestorHint": "unique counterparties from a curated DeFi address set. score = min(distinct / 25, 1) * 10000."
+  },
+  "4": {
+    "name": "GovernanceVotes",
+    "description": "Onchain DAO votes cast. 0 = never voted, 10000 = 50+ votes.",
+    "attestorHint": "count VoteCast events. score = min(votes / 50, 1) * 10000."
+  },
+  "5": {
+    "name": "NftHoldings",
+    "description": "Number of NFTs currently held. 0 = none, 10000 = 100+ NFTs.",
+    "attestorHint": "count ERC721 + ERC1155 holdings. score = min(count / 100, 1) * 10000."
+  },
+  "6": {
+    "name": "SocialEndorsements",
+    "description": "Peer endorsements received from other registered subjects. 0 = none, 10000 = 20+.",
+    "attestorHint": "count signals of type SocialEndorsements on this subject from other registered subjects. score = min(count / 20, 1) * 10000."
+  },
+  "7": {
+    "name": "ContractDeploys",
+    "description": "Number of contracts deployed by the address. 0 = none, 10000 = 25+ deployments.",
+    "attestorHint": "count transactions where to == null. score = min(count / 25, 1) * 10000."
+  },
+  "8": {
+    "name": "AssetDiversity",
+    "description": "Distinct ERC20 tokens held (non-zero balance). 0 = none, 10000 = 50+ distinct tokens.",
+    "attestorHint": "scan a token list, count where balanceOf(subject) > 0. score = min(distinct / 50, 1) * 10000."
+  },
+  "9": {
+    "name": "LiquidStaking",
+    "description": "Active liquid staking positions. 0 = none, 10000 = 5+ positions OR a very large single one.",
+    "attestorHint": "count distinct liquid staking receipt tokens held. score = min(positions / 5, 1) * 10000."
+  }
+}

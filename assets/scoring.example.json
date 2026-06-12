@@ -1,0 +1,26 @@
+{
+  "_comment": "Signal type weight reference. Indexes match the SignalType enum in IReputationRegistry. Weights are in basis points and sum to 10000.",
+  "typeWeights": {
+    "AccountAge":         1500,
+    "TxVolume":           1200,
+    "TxFrequency":        1000,
+    "DefiInteractions":   1500,
+    "GovernanceVotes":    1500,
+    "NftHoldings":         600,
+    "SocialEndorsements":  400,
+    "ContractDeploys":     800,
+    "AssetDiversity":      800,
+    "LiquidStaking":       700
+  },
+  "_sum": 10000,
+  "tiers": {
+    "Unverified": "score < 2000",
+    "Bronze":     "2000 <= score < 4000",
+    "Silver":     "4000 <= score < 6000",
+    "Gold":       "6000 <= score < 8000",
+    "Platinum":   "8000 <= score < 9500",
+    "Diamond":    "9500 <= score <= 10000"
+  },
+  "stalenessWindowSeconds": 7776000,
+  "_stalenessWindowNote": "Default 90 days (90 * 86400 = 7776000). Beyond this age, a signal contributes 0 to the score."
+}
