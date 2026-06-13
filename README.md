@@ -22,6 +22,242 @@ The result: an agent can say *"Wallet `0xAbc…` is Silver-tier with strong DeFi
 
 ---
 
+## Framework
+
+Repulyser is built and consumed entirely through **Foundry** — the `forge` and `cast` CLI tools. There is no npm, no Python, no JavaScript runtime, and no off-chain indexer.
+
+| Tool | Role |
+|---|---|
+| `forge` | Compile, test, deploy, run scripts. The only build tool. |
+| `cast` | Read state via `cast call`, write state via `cast send`. The only on-chain I/O. |
+| `forge-std` | Test + script standard library (vendored as a git submodule under `lib/forge-std`). |
+
+The contracts use `solc 0.8.24` with the optimizer on and the IR pipeline enabled (see `foundry.toml`). They are pure Solidity — no external protocol dependencies at runtime, so Repulyser is portable to any EVM-compatible chain.
+
+As an AI-agent skill, Repulyser is loaded by the agent's skill engine and exposes its capabilities through the `SKILL.md` frontmatter. Compatible with any agent framework that can shell out to `cast` / `forge` (OpenClaw, Claude Code, Codex, etc.).
+
+---
+
+## Network
+
+Repulyser is **chain-agnostic**. The three contracts have no hard-coded chain assumptions — they compile and deploy to any EVM chain that supports `solc 0.8.24` output and the standard `blockscout` block-explorer API for verification.
+
+`assets/networks.json` is the canonical network config. It ships with two generic placeholder entries (`example-testnet` and `example-mainnet`) that you replace with your chain's RPC, chain ID, and explorer URL. The shape is:
+
+```json
+{
+  "name": "<your-network>",
+  "rpcUrl": "https://...",
+  "chainId": 12345,
+  "explorerUrl": "https://...",
+  "explorerApiUrl": "https://...",
+  "nativeToken": "ETH"
+}
+```
+
+| Field | Used for |
+|---|---|
+| `rpcUrl` | `--rpc-url` on every `forge` / `cast` command |
+| `chainId` | `forge verify-contract --chain-id` |
+| `explorerApiUrl` | `forge verify-contract --verifier-url` |
+| `explorerUrl` | Building user-facing "view on explorer" links |
+| `nativeToken` | Displaying balances in human-readable output |
+
+Pick the network with `jq`:
+
+```bash
+RPC_URL=$(jq -r '.networks[] | select(.name=="<your-network>") | .rpcUrl' assets/networks.json)
+```
+
+Or pass `--rpc-url $YOUR_RPC_URL` directly and skip the file entirely.
+
+---
+
+## Dependencies
+
+### Runtime
+
+- **Foundry** (`forge`, `cast`, `anvil`, `chisel`) ≥ `v1.0.0`. Recommended: latest stable.
+- **EVM RPC endpoint** for the chain you want to deploy to. HTTP or WebSocket.
+- **Ether / native token** for gas. The combined deploy of all three contracts is well under 4M gas.
+
+### Build / dev
+
+- **Git** with submodule support (for pulling `lib/forge-std`).
+- **A C/C++ toolchain** (only for the optional `foundryup` installer on first install).
+
+### Submodules
+
+This repo uses one git submodule:
+
+| Path | URL | Why |
+|---|---|---|
+| `lib/forge-std` | https://github.com/foundry-rs/forge-std | Solidity stdlib for tests + scripts (`Test.sol`, `Script.sol`, `console.sol`, ...). Pinned via `.gitmodules`. |
+
+Clone with submodules in one go:
+
+```bash
+git clone --recurse-submodules https://github.com/visitseyi1/Repulyser.git
+```
+
+Or if you already cloned without them:
+
+```bash
+git submodule update --init --recursive
+```
+
+### Contract dependencies
+
+**None.** The contracts import only `forge-std` (test/script side) and have no on-chain dependencies on OpenZeppelin, Chainlink, or any other library. They are fully self-contained Solidity.
+
+### Verifying versions
+
+```bash
+forge --version     # forge Version: 1.x.y
+solc --version      # used by forge internally; pinned to 0.8.24 via foundry.toml
+cast --version
+anvil --version
+```
+
+---
+
+## Usage
+
+A complete walkthrough from a clean machine to a live reputation report.
+
+### 1. Install Foundry
+
+```bash
+curl -L https://foundry.paradigm.xyz | bash
+foundryup
+cast --version
+```
+
+### 2. Clone, build, test
+
+```bash
+git clone --recurse-submodules https://github.com/visitseyi1/Repulyser.git
+cd Repulyser
+forge build
+forge test            # 29 tests, all green
+forge fmt --check     # formatting check
+```
+
+### 3. Configure your network
+
+Edit `assets/networks.json` and replace the placeholder entries with your chain. Or set the env var directly:
+
+```bash
+export RPC_URL="https://your-rpc.example"
+export PRIVATE_KEY=0xyour...
+```
+
+### 4. Deploy
+
+```bash
+# Plain deploy
+forge script script/DeployRepulyser.s.sol:DeployRepulyser \
+  --rpc-url $RPC_URL \
+  --private-key $PRIVATE_KEY \
+  --broadcast
+
+# Bootstrap with demo data (registers deployer as first attestor + 10 signals)
+DEMO=1 forge script script/DeployRepulyser.s.sol:DeployRepulyser \
+  --rpc-url $RPC_URL \
+  --private-key $PRIVATE_KEY \
+  --broadcast
+```
+
+The script prints the three deployed addresses. Save them to `assets/deployments.json` (template at `assets/deployments.example.json`).
+
+```bash
+REGISTRY=0xRRRR...
+ANALYZER=0xAAAA...
+HELPER=0xHHHH...
+```
+
+### 5. Query a wallet
+
+Read-only — no private key needed:
+
+```bash
+SUBJECT=0xYourTarget
+
+# Quick: score + tier + coverage
+cast call $ANALYZER "quickScore(address)(uint16,uint8,uint8)" \
+  $SUBJECT --rpc-url $RPC_URL
+
+# Tier number → string ("Unverified", "Bronze", ..., "Diamond")
+cast call $ANALYZER "tierString(uint8)(string)" 2 --rpc-url $RPC_URL
+
+# Full per-signal-type breakdown
+SUBJECT=$SUBJECT ANALYZER=$ANALYZER \
+  forge script script/AnalyzeReputation.s.sol:AnalyzeReputation
+```
+
+Or use the bundled shell template:
+
+```bash
+SUBJECT=0xYourTarget RPC_URL=$RPC_URL bash assets/templates/template_analyze.sh.tpl
+```
+
+### 6. Push signals (attestor path)
+
+The registry owner registers an attestor once; the attestor can then push signals forever after.
+
+```bash
+# One-time: owner registers the bot
+cast send $REGISTRY "registerAttestor(address,string)" $BOT "Repulyser Bot" \
+  --rpc-url $RPC_URL --private-key $PRIVATE_KEY
+
+# Per signal: attestor writes a single (subject, type, score, weight, data) record
+cast send $REGISTRY "submitSignal(address,uint8,uint16,uint16,bytes)" \
+  0xSubject 0 6500 8000 0x \
+  --rpc-url $RPC_URL --private-key $PRIVATE_KEY
+```
+
+For batch writes (dozens of signals in one transaction), use the helper — see `references/helper.md`:
+
+```bash
+# Register the helper itself as the attestor (one-time)
+cast send $REGISTRY "registerAttestor(address,string)" $HELPER "Repulyser Attestor Helper" \
+  --rpc-url $RPC_URL --private-key $PRIVATE_KEY
+
+# Queue N signals (one tx per queue call, or use a forge script for batching)
+cast send $HELPER "queue(address,uint8,uint16,uint16,bytes)" 0xSubject 0 6500 8000 0x \
+  --rpc-url $RPC_URL --private-key $PRIVATE_KEY
+
+# Flush all queued signals in one transaction
+cast send $HELPER "submitAll()" \
+  --rpc-url $RPC_URL --private-key $PRIVATE_KEY
+```
+
+### 7. Verify on the block explorer (optional)
+
+```bash
+CHAIN_ID=$(jq -r '.networks[] | select(.name=="<your-network>") | .chainId' assets/networks.json)
+EXPLORER_API_URL=$(jq -r '.networks[] | select(.name=="<your-network>") | .explorerApiUrl' assets/networks.json)
+
+forge verify-contract $REGISTRY src/ReputationRegistry.sol:ReputationRegistry \
+  --chain-id $CHAIN_ID --verifier-url $EXPLORER_API_URL --verifier blockscout
+
+forge verify-contract $ANALYZER src/ReputationAnalyzer.sol:ReputationAnalyzer \
+  --chain-id $CHAIN_ID --verifier-url $EXPLORER_API_URL --verifier blockscout \
+  --constructor-args $(cast abi-encode "constructor(address)" $REGISTRY)
+
+forge verify-contract $HELPER src/ReputationAttestor.sol:ReputationAttestor \
+  --chain-id $CHAIN_ID --verifier-url $EXPLORER_API_URL --verifier blockscout \
+  --constructor-args $(cast abi-encode "constructor(address)" $REGISTRY)
+```
+
+> If verifying immediately after deployment, wait ~10 seconds for the explorer indexer to catch up.
+
+### 8. As an AI-agent skill
+
+The agent loads `SKILL.md` and follows the bundled capability index. Read-only questions ("analyze 0x…") need no key and no extra setup beyond the deployed `ANALYZER` address. Write requests require the standard pre-checks (key set → derive address → confirm network).
+
+---
+
 ## Layout
 
 ```
@@ -53,82 +289,6 @@ The result: an agent can say *"Wallet `0xAbc…` is Silver-tier with strong DeFi
     └── templates/
         └── template_analyze.sh.tpl
 ```
-
----
-
-## Quick start
-
-### 1. Install Foundry (one-time)
-
-```bash
-curl -L https://foundry.paradigm.xyz | bash
-foundryup
-cast --version
-```
-
-### 2. Clone and build
-
-```bash
-git clone https://github.com/visitseyi1/Repulyser.git
-cd Repulyser
-forge build
-forge test   # 29 tests, all green
-```
-
-### 3. Deploy to your chain of choice
-
-Repulyser is chain-agnostic. `assets/networks.json` ships with example entries — edit it for your RPC, or pass `--rpc-url` directly:
-
-```bash
-export PRIVATE_KEY=0xyour...
-forge script script/DeployRepulyser.s.sol:DeployRepulyser \
-  --rpc-url $YOUR_RPC_URL \
-  --private-key $PRIVATE_KEY \
-  --broadcast
-```
-
-Copy the printed `ReputationRegistry`, `ReputationAnalyzer`, and `ReputationAttestor` addresses into `assets/deployments.json` and commit.
-
-Set `DEMO=1` to also register the deployer as the first attestor and submit 10 demo signals. Useful for end-to-end smoke testing after deploy.
-
-### 4. Query a wallet
-
-```bash
-SUBJECT=0xYourTarget
-ANALYZER=0x...   # from the deploy output
-
-# Quick: score + tier + coverage
-cast call $ANALYZER "quickScore(address)(uint16,uint8,uint8)" $SUBJECT --rpc-url $YOUR_RPC_URL
-
-# Tier as a string
-cast call $ANALYZER "tierString(uint8)(string)" 2 --rpc-url $YOUR_RPC_URL
-# "Silver"
-
-# Full breakdown
-SUBJECT=$SUBJECT ANALYZER=$ANALYZER \
-  forge script script/AnalyzeReputation.s.sol:AnalyzeReputation
-```
-
-Or use the bundled shell template:
-
-```bash
-SUBJECT=0xYourTarget bash assets/templates/template_analyze.sh.tpl
-```
-
-### 5. Push signals (attestor path)
-
-```bash
-# One-time: registry owner registers the bot as an attestor
-cast send $REGISTRY "registerAttestor(address,string)" $BOT "Repulyser Bot" \
-  --rpc-url $YOUR_RPC_URL --private-key $PRIVATE_KEY
-
-# Then the bot can submit signals
-cast send $REGISTRY "submitSignal(address,uint8,uint16,uint16,bytes)" \
-  0xSubject 0 6500 8000 0x \
-  --rpc-url $YOUR_RPC_URL --private-key $PRIVATE_KEY
-```
-
-See `references/registry.md` and `references/helper.md` for the full write flow including the batch helper.
 
 ---
 
