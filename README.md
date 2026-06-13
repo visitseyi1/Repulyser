@@ -1,26 +1,24 @@
 # Repulyser
 
-**An onchain reputation analyzer for the Pharos Agent Center.**
+**An onchain reputation analyzer for EVM chains, built with Foundry.**
 
-Repulyser is a Foundry-only skill that lets any AI agent answer the question *"what is the reputation of `0x...` on Pharos?"* with a single `cast call`. It ships three Solidity contracts and a `SKILL.md` that an agent (OpenClaw, Claude Code, Codex, …) can load to:
+Repulyser ships three Solidity contracts — `ReputationRegistry`, `ReputationAnalyzer`, and `ReputationAttestor` — that together let any AI agent answer the question *"what is the reputation of `0x...`?"* with a single `cast call`. The analyzer returns a composite `0..10000` score, a tier (Unverified → Bronze → Silver → Gold → Platinum → Diamond), and a per-signal-type breakdown across 10 dimensions: account age, tx volume, tx frequency, DeFi interactions, governance votes, NFT holdings, social endorsements, contract deploys, asset diversity, and liquid staking. Scores are attestor-weighted and decay linearly over a configurable staleness window (default 90 days).
 
-- **Deploy** the reputation stack (`ReputationRegistry` + `ReputationAnalyzer` + `ReputationAttestor`) in one `forge script` call.
-- **Score** any address with a composite 0..10000 reputation plus a tier (Unverified → Bronze → Silver → Gold → Platinum → Diamond) via `cast call analyzer "analyze(address)"`.
-- **Push signals** from any registered attestor using the registry or the batch helper.
-
-No Python, no off-chain indexer, no JS. Just `forge` and `cast`.
+Built strictly with Foundry (`forge` / `cast`). No Python, no JavaScript, no off-chain indexer.
 
 ---
 
 ## Why this exists
 
-The Pharos Agent Center ships a unified set of "pharos-skill-engine" capabilities: balance queries, tx status, contract reads, transfers, deployments, airdrops, asset aggregation. Repulyser extends that surface with **identity and trust**:
+Most onchain tooling answers *what did this address do?* Repulyser answers *should I trust this address?*
 
-- An onchain **registry of attestors** (bots, DAOs, multisigs) that submit normalized signals about any address.
-- A **pure view-only analyzer** that consumes those signals, applies a time-decay, and returns a composite score and tier.
-- A **batch helper** so attestors can queue dozens of signals in memory and flush them in a single `forge script` call.
+The system has three pieces:
 
-The result: an agent can compose a sentence like *"Wallet 0xAbc… is Gold-tier on Pharos Atlantic, with strong DeFi interactions but no governance history"* by reading one tuple.
+- **ReputationRegistry** — append-only signal storage. Approved attestors (bots, DAOs, multisigs) write normalized 0..10000 signals about any address.
+- **ReputationAnalyzer** — pure view-only scoring. Consumes signals, applies attestor-weighted averaging and time decay, returns a composite score, tier, and breakdown.
+- **ReputationAttestor** — a small helper contract that lets an attestor bot queue dozens of signals in memory and flush them in a single `forge script` transaction.
+
+The result: an agent can say *"Wallet `0xAbc…` is Silver-tier with strong DeFi interactions but no governance history"* from one tuple.
 
 ---
 
@@ -28,7 +26,7 @@ The result: an agent can compose a sentence like *"Wallet 0xAbc… is Gold-tier 
 
 ```
 .
-├── SKILL.md                 # Skill manifest the agent loads
+├── SKILL.md                 # AI-agent skill manifest
 ├── foundry.toml             # Foundry config (solc 0.8.24, via-ir, optimizer)
 ├── remappings.txt
 ├── src/
@@ -48,7 +46,7 @@ The result: an agent can compose a sentence like *"Wallet 0xAbc… is Gold-tier 
 │   ├── helper.md
 │   └── scoring.md
 └── assets/
-    ├── networks.json             # Pharos RPC + chain IDs (Atlantic + mainnet)
+    ├── networks.json             # Example RPC + chain IDs
     ├── deployments.example.json  # Template for tracking deployed addresses
     ├── scoring.example.json      # Type weights + tier thresholds
     ├── signal-types.json         # Enum + per-signal-type scoring hints
@@ -77,31 +75,33 @@ forge build
 forge test   # 29 tests, all green
 ```
 
-### 3. Deploy to Atlantic testnet
+### 3. Deploy to your chain of choice
+
+Repulyser is chain-agnostic. `assets/networks.json` ships with example entries — edit it for your RPC, or pass `--rpc-url` directly:
 
 ```bash
 export PRIVATE_KEY=0xyour...
-RPC_URL=$(jq -r '.networks[] | select(.name=="atlantic-testnet") | .rpcUrl' assets/networks.json)
-
 forge script script/DeployRepulyser.s.sol:DeployRepulyser \
-  --rpc-url $RPC_URL \
+  --rpc-url $YOUR_RPC_URL \
   --private-key $PRIVATE_KEY \
   --broadcast
 ```
 
 Copy the printed `ReputationRegistry`, `ReputationAnalyzer`, and `ReputationAttestor` addresses into `assets/deployments.json` and commit.
 
+Set `DEMO=1` to also register the deployer as the first attestor and submit 10 demo signals. Useful for end-to-end smoke testing after deploy.
+
 ### 4. Query a wallet
 
 ```bash
 SUBJECT=0xYourTarget
-ANALYZER=$(jq -r '.atlantic-testnet.analyzer' assets/deployments.json)
+ANALYZER=0x...   # from the deploy output
 
 # Quick: score + tier + coverage
-cast call $ANALYZER "quickScore(address)(uint16,uint8,uint8)" $SUBJECT --rpc-url $RPC_URL
+cast call $ANALYZER "quickScore(address)(uint16,uint8,uint8)" $SUBJECT --rpc-url $YOUR_RPC_URL
 
 # Tier as a string
-cast call $ANALYZER "tierString(uint8)(string)" 2 --rpc-url $RPC_URL
+cast call $ANALYZER "tierString(uint8)(string)" 2 --rpc-url $YOUR_RPC_URL
 # "Silver"
 
 # Full breakdown
@@ -118,16 +118,14 @@ SUBJECT=0xYourTarget bash assets/templates/template_analyze.sh.tpl
 ### 5. Push signals (attestor path)
 
 ```bash
-REGISTRY=$(jq -r '.atlantic-testnet.registry' assets/deployments.json)
-
 # One-time: registry owner registers the bot as an attestor
 cast send $REGISTRY "registerAttestor(address,string)" $BOT "Repulyser Bot" \
-  --rpc-url $RPC_URL --private-key $PRIVATE_KEY
+  --rpc-url $YOUR_RPC_URL --private-key $PRIVATE_KEY
 
 # Then the bot can submit signals
 cast send $REGISTRY "submitSignal(address,uint8,uint16,uint16,bytes)" \
   0xSubject 0 6500 8000 0x \
-  --rpc-url $RPC_URL --private-key $PRIVATE_KEY
+  --rpc-url $YOUR_RPC_URL --private-key $PRIVATE_KEY
 ```
 
 See `references/registry.md` and `references/helper.md` for the full write flow including the batch helper.
@@ -186,16 +184,10 @@ Suite result: ok. 29 passed; 0 failed; 0 skipped
 ```
 
 Covers:
-- Registry: owner gating, attestor management, subject self-registration, signal bounds, revoke flow, latest-pointer semantics, edge cases on missing/deleted signals.
-- Analyzer: empty subjects, single signal, full-max (Diamond), attestor-weighted averaging, time decay (full and partial), tier thresholds, per-subject isolation, type-weight sum invariant, configuration setters.
-- Attestor helper: queue, single submit, batch submitAll, double-submit reverts, non-attestor rejection.
-- Fuzz: random score/weight inputs stay in `[0, 10000]`.
-
----
-
-## Submission to the Pharos Agent Center Skill Builder Campaign
-
-This skill is being submitted to the **Pharos Agent Center — Skill Builder Campaign** (25 May 2026 – 8 June 2026, winners announced 15 June 2026). The submission text for the `#skill-submission` channel on Pharos Discord is in [`SUBMISSION.md`](./SUBMISSION.md).
+- **Registry**: owner gating, attestor management, subject self-registration, signal bounds, revoke flow, latest-pointer semantics, edge cases on missing/deleted signals.
+- **Analyzer**: empty subjects, single signal, full-max (Diamond), attestor-weighted averaging, time decay (full and partial), tier thresholds, per-subject isolation, type-weight sum invariant, configuration setters.
+- **Attestor helper**: queue, single submit, batch submitAll, double-submit reverts, non-attestor rejection.
+- **Fuzz**: random score/weight inputs stay in `[0, 10000]`.
 
 ---
 

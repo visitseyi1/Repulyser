@@ -1,16 +1,15 @@
 ---
 name: repulyser
 description: >
-  REQUIRED for any "reputation", "trust score", "credibility", or "analyze wallet"
-  task on Pharos (Atlantic testnet or mainnet). This skill ships an onchain
-  ReputationRegistry + ReputationAnalyzer pair: attestors write normalized 0–10000
-  signals across 10 dimensions (account age, tx volume, DeFi, governance, NFTs,
-  social, contract deploys, asset diversity, liquid staking, tx frequency),
-  and the analyzer returns a composite score, tier (Unverified→Diamond), and
-  per-type breakdown. Use whenever the user asks to score, rank, audit, or
-  summarise a Pharos address's onchain reputation. Reads are pure `cast call`;
-  writes use `forge script` and the deployer key. Built strictly with Foundry
-  (forge / cast) — no Python, no JS, no off-chain indexer required.
+  Use for any "reputation", "trust score", "credibility", or "analyze wallet"
+  task on an EVM chain. This skill ships an onchain ReputationRegistry +
+  ReputationAnalyzer pair: attestors write normalized 0–10000 signals across
+  10 dimensions (account age, tx volume, DeFi, governance, NFTs, social,
+  contract deploys, asset diversity, liquid staking, tx frequency), and the
+  analyzer returns a composite score, tier (Unverified→Diamond), and per-type
+  breakdown. Reads are pure `cast call`; writes use `forge script` and the
+  deployer key. Built strictly with Foundry (forge / cast) — no Python, no
+  JavaScript, no off-chain indexer required.
 version: 0.1.0
 requires:
   anyBins:
@@ -20,7 +19,7 @@ requires:
 
 # Repulyser — Onchain Reputation Analyzer
 
-A read-friendly, write-friendly onchain reputation stack for Pharos Network. Drop the three contracts (`ReputationRegistry`, `ReputationAnalyzer`, `ReputationAttestor`) into any Pharos environment, point the skill at the deployed addresses, and the agent can answer "what is the reputation of `0x...`" with a single `cast call`.
+A read-friendly, write-friendly onchain reputation stack for EVM chains. Drop the three contracts (`ReputationRegistry`, `ReputationAnalyzer`, `ReputationAttestor`) into any EVM environment, point the skill at the deployed addresses, and the agent can answer "what is the reputation of `0x...`" with a single `cast call`.
 
 The system is intentionally minimal so that an AI agent — given only this `SKILL.md` and the `assets/` + `references/` bundle — can:
 
@@ -37,18 +36,18 @@ The system is intentionally minimal so that an AI agent — given only this `SKI
    foundryup
    cast --version
    ```
-2. **Network configuration is read from `assets/networks.json`** (same schema as the official Pharos Skill Engine — Atlantic testnet and mainnet).
+2. **RPC endpoint** is configured in `assets/networks.json` (or passed as `--rpc-url` directly). The file is a generic config — replace the example entries with your chain's RPC, chain ID, and explorer URL.
 3. **A `$PRIVATE_KEY` env var** is required only for write operations (deploy, register attestor, submit signal). Read-only `cast call` queries need no key.
 
 ## Network Configuration
 
-`assets/networks.json` contains the Atlantic testnet and mainnet RPC endpoints. Read the same way as the official Pharos Skill Engine:
+`assets/networks.json` is the canonical network config. It uses a simple `{ networks: [...], defaultNetwork: "..." }` shape so the agent can switch with `jq`:
 
 ```bash
-RPC_URL=$(jq -r '.networks[] | select(.name=="atlantic-testnet") | .rpcUrl' assets/networks.json)
+RPC_URL=$(jq -r '.networks[] | select(.name=="<your-network>") | .rpcUrl' assets/networks.json)
 ```
 
-Default to `atlantic-testnet` unless the user explicitly says "mainnet".
+Pick the network you want, or add your own entry.
 
 ## Capability Index
 
@@ -68,7 +67,7 @@ Default to `atlantic-testnet` unless the user explicitly says "mainnet".
 
 Whenever a user asks anything about a wallet's reputation, follow this flow:
 
-1. **Identify the network** the user wants (default Atlantic testnet). Read `assets/networks.json`.
+1. **Identify the network** the user wants. Read `assets/networks.json` (or ask).
 2. **Resolve the deployed contract addresses**:
    - If the user provided them, use those.
    - Otherwise, look them up from `assets/deployments.json` if present, OR ask the user to deploy first via `references/deploy.md`.
@@ -93,7 +92,7 @@ Whenever a user asks anything about a wallet's reputation, follow this flow:
 ## Security Reminders
 
 - **Private key**: never echoed into chat; always read from `$PRIVATE_KEY`.
-- **Network confirmation**: always state "target = Atlantic testnet" or "target = mainnet" before writes.
+- **Network confirmation**: always state "target = <network>" before writes.
 - **Trust model**: the registry's owner is fully trusted to add/revoke attestors. For production deployments, consider deploying via a multisig and adding a timelock on `registerAttestor`.
 - **Score interpretation**: a "Diamond" score does NOT mean the address is safe to transact with — it is a heuristic of historical onchain behaviour. Always combine with the user's own risk checks.
 

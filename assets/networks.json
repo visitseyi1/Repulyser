@@ -1,21 +1,22 @@
 {
+  "_comment": "Example network config. Replace these entries with your chain's RPC, chain ID, and explorer URLs, or add new ones. The agent reads this file via 'jq' to resolve --rpc-url and --verifier-url flags.",
   "networks": [
     {
-      "name": "atlantic-testnet",
-      "rpcUrl": "https://atlantic.dplabs-internal.com",
-      "chainId": 688689,
-      "explorerUrl": "https://atlantic.pharosscan.xyz/",
-      "explorerApiUrl": "https://api.socialscan.io/pharos-atlantic-testnet",
-      "nativeToken": "PHRS"
+      "name": "example-testnet",
+      "rpcUrl": "https://rpc.example-testnet.example",
+      "chainId": 12345,
+      "explorerUrl": "https://explorer.example-testnet.example",
+      "explorerApiUrl": "https://api.explorer.example-testnet.example",
+      "nativeToken": "ETH"
     },
     {
-      "name": "mainnet",
-      "rpcUrl": "https://rpc.pharos.xyz",
-      "chainId": 1672,
-      "explorerUrl": "https://www.pharosscan.xyz/",
-      "explorerApiUrl": "https://api.socialscan.io/pharos-mainnet",
-      "nativeToken": "PROS"
+      "name": "example-mainnet",
+      "rpcUrl": "https://rpc.example-mainnet.example",
+      "chainId": 67890,
+      "explorerUrl": "https://explorer.example-mainnet.example",
+      "explorerApiUrl": "https://api.explorer.example-mainnet.example",
+      "nativeToken": "ETH"
     }
   ],
-  "defaultNetwork": "atlantic-testnet"
+  "defaultNetwork": "example-testnet"
 }

@@ -1,11 +1,11 @@
 # Deployment
 
-> **Network configuration**: read `<rpc>`, `<chain_id>`, and `<explorer_api_url>` from `assets/networks.json`. Default network is `atlantic-testnet`.
+> **Network configuration**: read `<rpc>`, `<chain_id>`, and `<explorer_api_url>` from `assets/networks.json`. Pick the network entry that matches the chain you want to deploy to.
 
 ## One-shot deploy
 
 ```bash
-RPC_URL=$(jq -r '.networks[] | select(.name=="atlantic-testnet") | .rpcUrl' assets/networks.json)
+RPC_URL=$(jq -r '.networks[] | select(.name=="<your-network>") | .rpcUrl' assets/networks.json)
 
 forge script script/DeployRepulyser.s.sol:DeployRepulyser \
   --rpc-url $RPC_URL \
@@ -21,7 +21,7 @@ ReputationAnalyzer deployed at:  0xAAAA...
 ReputationAttestor deployed at:  0xHHHH...
 ```
 
-Copy those into `assets/deployments.json` (use `assets/deployments.example.json` as the template) and commit. The skill's `analyze` reference looks up the analyzer address from there.
+Copy those into `assets/deployments.json` (use `assets/deployments.example.json` as the template) and commit.
 
 ### Optional: bootstrap demo data
 
@@ -37,8 +37,8 @@ DEMO=1 forge script script/DeployRepulyser.s.sol:DeployRepulyser \
 ## Verify contracts
 
 ```bash
-CHAIN_ID=$(jq -r '.networks[] | select(.name=="atlantic-testnet") | .chainId' assets/networks.json)
-EXPLORER_API_URL=$(jq -r '.networks[] | select(.name=="atlantic-testnet") | .explorerApiUrl' assets/networks.json)
+CHAIN_ID=$(jq -r '.networks[] | select(.name=="<your-network>") | .chainId' assets/networks.json)
+EXPLORER_API_URL=$(jq -r '.networks[] | select(.name=="<your-network>") | .explorerApiUrl' assets/networks.json)
 
 # Registry — no constructor args
 forge verify-contract $REGISTRY_ADDRESS src/ReputationRegistry.sol:ReputationRegistry \
@@ -61,11 +61,11 @@ forge verify-contract $HELPER_ADDRESS src/ReputationAttestor.sol:ReputationAttes
   --constructor-args $(cast abi-encode "constructor(address)" $REGISTRY_ADDRESS)
 ```
 
-> If verifying immediately after deployment, wait ~10 seconds for the explorer indexer to catch up (the Pharos docs warn about this for `forge verify-contract`).
+> If verifying immediately after deployment, wait ~10 seconds for the explorer indexer to catch up. Many block-explorer backends lag the chain head by a few seconds; verifying too soon can produce transient errors that resolve on retry.
 
-## Deployment cost (Atlantic testnet reference)
+## Deployment cost (reference)
 
-Approximate deployment costs from the testnet gas report:
+Approximate deployment costs from a recent test run:
 
 | Contract | Deployment cost | Size |
 |---|---|---|
@@ -73,7 +73,7 @@ Approximate deployment costs from the testnet gas report:
 | `ReputationAnalyzer` | ~1,050,000 gas (with via-ir) | ~3,400 B |
 | `ReputationAttestor` | ~730,278 gas | 3,403 B |
 
-Combined deploy (registry + analyzer + helper) is well under 4M gas — comfortably within a single Pharos block at normal gas prices.
+Combined deploy (registry + analyzer + helper) is well under 4M gas — comfortably within a single block at normal gas prices on most EVM chains.
 
 ## Post-deploy checklist
 
