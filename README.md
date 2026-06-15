@@ -121,6 +121,111 @@ anvil --version
 
 ---
 
+## How to test
+
+Three levels, fastest first. Pick the one that matches what you want to verify.
+
+### Level 1 — unit tests (10 seconds, no chain needed)
+
+```bash
+forge test
+```
+
+Expected: `Suite result: ok. 29 passed; 0 failed; 0 skipped`. Covers registry, analyzer, helper, time decay, tier thresholds, fuzz bounds. No RPC, no deploy.
+
+For verbose output of any test:
+
+```bash
+forge test -vvv --match-test test_WeightedAttestorsAverage
+```
+
+For gas profiling:
+
+```bash
+forge test --gas-report
+```
+
+### Level 2 — end-to-end on a local `anvil` node (30 seconds, no real chain)
+
+This is the recommended way to confirm "is this thing actually working?". Spins up an in-process EVM node, deploys all three contracts, pushes 10 demo signals, queries the analyzer, and prints the report.
+
+```bash
+./scripts/smoke-test.sh
+```
+
+Expected last lines:
+
+```
+==> 5/6 query reputation via cast call
+    score:    ~4800 / 10000  (48.xx %)
+    tier:     Silver
+    coverage: 10 / 10 signal types
+
+==> smoke test PASSED
+```
+
+The script leaves `anvil` running on `http://127.0.0.1:8545` after completion (it auto-cleans on exit) so you can run extra queries against the live local contracts — the script prints the exported env vars at the end.
+
+You can also run the steps manually if you want full control:
+
+```bash
+# 1. Start a local node
+anvil --port 8545 &
+
+# 2. Deploy with demo data
+PRIV=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+DEMO=1 forge script script/DeployRepulyser.s.sol:DeployRepulyser \
+  --rpc-url http://127.0.0.1:8545 --private-key $PRIV --broadcast
+
+# 3. Read the deployed addresses
+jq '.transactions[] | select(.contractName=="ReputationAnalyzer") | .contractAddress' \
+  broadcast/DeployRepulyser.s.sol/31337/run-latest.json
+
+# 4. Query the analyzer
+ANALYZER=0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512
+cast call $ANALYZER "quickScore(address)(uint16,uint8,uint8)" \
+  0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 --rpc-url http://127.0.0.1:8545
+# -> 4894
+# -> 2        (Silver)
+# -> 10       (coverage: 10/10)
+```
+
+### Level 3 — deploy to a real testnet (5-10 minutes)
+
+```bash
+# 1. Set your testnet RPC and a funded private key
+export RPC_URL="https://your-rpc.example"
+export PRIVATE_KEY=0xyour...
+
+# 2. Deploy (set DEMO=1 to also push 10 demo signals)
+DEMO=1 forge script script/DeployRepulyser.s.sol:DeployRepulyser \
+  --rpc-url $RPC_URL --private-key $PRIVATE_KEY --broadcast
+
+# 3. Save the three addresses to assets/deployments.json
+
+# 4. Query any address on the live chain
+ANALYZER=0x...   # from step 2 output
+cast call $ANALYZER "quickScore(address)(uint16,uint8,uint8)" \
+  0xSomeAddress --rpc-url $RPC_URL
+```
+
+### Quick checks (one-liners)
+
+| Check | Command |
+|---|---|
+| Contracts compile | `forge build` |
+| Formatting is clean | `forge fmt --check` |
+| All 29 tests pass | `forge test` |
+| Run a single test | `forge test --match-test test_AllMaxSignalsGiveDiamond -vvv` |
+| Fuzz bounds hold | `forge test --match-test testFuzz` |
+| Gas report | `forge test --gas-report` |
+| Full local e2e | `./scripts/smoke-test.sh` |
+| Deploy to testnet | `forge script script/DeployRepulyser.s.sol:DeployRepulyser --rpc-url $RPC_URL --private-key $PRIVATE_KEY --broadcast` |
+| Pretty-print report | `SUBJECT=0x.. ANALYZER=0x.. forge script script/AnalyzeReputation.s.sol:AnalyzeReputation` |
+| One-shot shell query | `SUBJECT=0x.. RPC_URL=... bash assets/templates/template_analyze.sh.tpl` |
+
+---
+
 ## Usage
 
 A complete walkthrough from a clean machine to a live reputation report.
