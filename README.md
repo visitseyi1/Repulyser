@@ -464,26 +464,19 @@ MIT. See [`LICENSE`](./LICENSE).
 
 ---
 
-## Logo & brand
+## Logo
 
 The Repulyser mark is a hexagonal shield (representing trust) with a pulse waveform running through it (representing onchain reputation signals). The two small leads leaving the shield at the bottom represent the **input** signals (from attestors) and the **output** (the analyzed reputation score). Color palette is **indigo `#4F46E5`** to **cyan `#06B6D4`** on light, lighter shades (`#818CF8` / `#22D3EE`) on dark backgrounds.
 
-### Download
+Files in `assets/`:
 
-**All-in-one brand pack** (4 MB zip with everything below + `BRAND.md` usage guide):
+| File | Use |
+|---|---|
+| `assets/logo-horizontal.png` | README hero, docs, social cards (2752×1536) |
+| `assets/logo.png` | Standalone square icon, light theme (1024×1024) |
+| `assets/logo-dark.png` | Standalone square icon, dark theme (1024×1024) |
+| `assets/logo.svg` | Source vector for the light icon (scalable, editable) |
+| `assets/logo-dark.svg` | Source vector for the dark icon |
+| `assets/favicon.png` | 256×256 favicon for docs sites / web UI |
 
-👉 **[`assets/repulyser-brand-pack.zip`](./assets/repulyser-brand-pack.zip)**
-
-Or grab individual files:
-
-| File | Use | Download |
-|---|---|---|
-| Horizontal hero (2752×1536) | README hero, docs, social cards | [logo-horizontal.png](./assets/logo-horizontal.png) |
-| Square icon, light (1024×1024) | Light-background square icon | [logo.png](./assets/logo.png) |
-| Square icon, dark (1024×1024) | Dark-background square icon | [logo-dark.png](./assets/logo-dark.png) |
-| SVG source, light | Scalable vector, light theme | [logo.svg](./assets/logo.svg) |
-| SVG source, dark | Scalable vector, dark theme | [logo-dark.svg](./assets/logo-dark.svg) |
-| Favicon (256×256) | Browser favicon | [favicon.png](./assets/favicon.png) |
-| Brand guide | Usage rules + palette | [BRAND.md](./assets/BRAND.md) |
-
-If you want to use the mark in your own project, please keep the colors and proportions intact. The SVG sources are the canonical versions — the PNGs are rasterizations. See [`assets/BRAND.md`](./assets/BRAND.md) for the full usage rules.
+If you want to use the mark in your own project, please keep the colors and proportions intact. The SVG sources are the canonical versions — the PNGs are rasterizations.
