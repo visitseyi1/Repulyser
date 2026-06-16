@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <title>Repulyser logo</title>
+  <defs>
+    <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4F46E5"/>
+      <stop offset="100%" stop-color="#06B6D4"/>
+    </linearGradient>
+    <linearGradient id="pulseGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#4F46E5"/>
+      <stop offset="100%" stop-color="#06B6D4"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Outer hexagonal shield -->
+  <path d="M256 32
+           L432 128
+           L432 304
+           L256 480
+           L80 304
+           L80 128 Z"
+        fill="none"
+        stroke="url(#shieldGrad)"
+        stroke-width="14"
+        stroke-linejoin="round"/>
+
+  <!-- Inner accent hexagon (offset, lighter) -->
+  <path d="M256 80
+           L384 152
+           L384 280
+           L256 432
+           L128 280
+           L128 152 Z"
+        fill="none"
+        stroke="url(#shieldGrad)"
+        stroke-width="6"
+        stroke-linejoin="round"
+        opacity="0.55"/>
+
+  <!-- Pulse / signal waveform across the shield -->
+  <polyline points="96,256 160,256 184,200 208,312 232,168 256,344 280,232 304,256 416,256"
+            fill="none"
+            stroke="url(#pulseGrad)"
+            stroke-width="16"
+            stroke-linecap="round"
+            stroke-linejoin="round"/>
+
+  <!-- Two small signal "leads" leaving the shield at the bottom-left and bottom-right -->
+  <circle cx="120" cy="392" r="10" fill="#4F46E5"/>
+  <circle cx="392" cy="392" r="10" fill="#06B6D4"/>
+  <line x1="120" y1="392" x2="160" y2="424" stroke="#4F46E5" stroke-width="6" stroke-linecap="round"/>
+  <line x1="392" y1="392" x2="352" y2="424" stroke="#06B6D4" stroke-width="6" stroke-linecap="round"/>
+</svg>

@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <title>Repulyser logo (dark)</title>
+  <defs>
+    <linearGradient id="shieldGradDark" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#818CF8"/>
+      <stop offset="100%" stop-color="#22D3EE"/>
+    </linearGradient>
+    <linearGradient id="pulseGradDark" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#A5B4FC"/>
+      <stop offset="100%" stop-color="#67E8F9"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Dark background -->
+  <rect width="512" height="512" fill="#0F172A"/>
+
+  <!-- Outer hexagonal shield -->
+  <path d="M256 32
+           L432 128
+           L432 304
+           L256 480
+           L80 304
+           L80 128 Z"
+        fill="none"
+        stroke="url(#shieldGradDark)"
+        stroke-width="14"
+        stroke-linejoin="round"/>
+
+  <!-- Inner accent hexagon -->
+  <path d="M256 80
+           L384 152
+           L384 280
+           L256 432
+           L128 280
+           L128 152 Z"
+        fill="none"
+        stroke="url(#shieldGradDark)"
+        stroke-width="6"
+        stroke-linejoin="round"
+        opacity="0.55"/>
+
+  <!-- Pulse waveform -->
+  <polyline points="96,256 160,256 184,200 208,312 232,168 256,344 280,232 304,256 416,256"
+            fill="none"
+            stroke="url(#pulseGradDark)"
+            stroke-width="16"
+            stroke-linecap="round"
+            stroke-linejoin="round"/>
+
+  <!-- Signal leads -->
+  <circle cx="120" cy="392" r="10" fill="#A5B4FC"/>
+  <circle cx="392" cy="392" r="10" fill="#67E8F9"/>
+  <line x1="120" y1="392" x2="160" y2="424" stroke="#A5B4FC" stroke-width="6" stroke-linecap="round"/>
+  <line x1="392" y1="392" x2="352" y2="424" stroke="#67E8F9" stroke-width="6" stroke-linecap="round"/>
+</svg>

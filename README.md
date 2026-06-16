@@ -1,5 +1,7 @@
 # Repulyser
 
+![Repulyser logo — Onchain Reputation Analyzer](assets/logo-horizontal.png)
+
 **An onchain reputation analyzer for EVM chains, built with Foundry.**
 
 Repulyser ships three Solidity contracts — `ReputationRegistry`, `ReputationAnalyzer`, and `ReputationAttestor` — that together let any AI agent answer the question *"what is the reputation of `0x...`?"* with a single `cast call`. The analyzer returns a composite `0..10000` score, a tier (Unverified → Bronze → Silver → Gold → Platinum → Diamond), and a per-signal-type breakdown across 10 dimensions: account age, tx volume, tx frequency, DeFi interactions, governance votes, NFT holdings, social endorsements, contract deploys, asset diversity, and liquid staking. Scores are attestor-weighted and decay linearly over a configurable staleness window (default 90 days).
@@ -459,3 +461,22 @@ Covers:
 ## License
 
 MIT. See [`LICENSE`](./LICENSE).
+
+---
+
+## Logo & brand
+
+The Repulyser mark is a hexagonal shield (representing trust) with a pulse waveform running through it (representing onchain reputation signals). The two small leads leaving the shield at the bottom represent the **input** signals (from attestors) and the **output** (the analyzed reputation score). Color palette is **indigo `#4F46E5`** to **cyan `#06B6D4`** on light, lighter shades (`#818CF8` / `#22D3EE`) on dark backgrounds.
+
+Files in `assets/`:
+
+| File | Use |
+|---|---|
+| `assets/logo-horizontal.png` | README hero, docs, social cards (2752×1536) |
+| `assets/logo.png` | Standalone square icon, light theme (1024×1024, transparent-friendly) |
+| `assets/logo-dark.png` | Standalone square icon, dark theme (1024×1024, with dark background) |
+| `assets/logo.svg` | Source vector for the light icon (scalable, editable) |
+| `assets/logo-dark.svg` | Source vector for the dark icon |
+| `assets/favicon.png` | 256×256 favicon for docs sites / web UI |
+
+If you want to use the mark in your own project, please keep the colors and proportions intact. The SVG sources are the canonical versions — the PNGs are rasterizations.
